@@ -20,7 +20,7 @@ try:
             gripper_data = json.loads(message)
             device_id = gripper_data.get("device")
 
-            if device_id == "G4_Gri":
+            if device_id == "G1_Gri":
                 roll = gripper_data.get("roll")
                 pitch = gripper_data.get("pitch")
                 yaw = gripper_data.get("yaw")

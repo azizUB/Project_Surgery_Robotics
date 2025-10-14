@@ -24,7 +24,7 @@ try:
             pitch = orientation.get("pitch")
             yaw = orientation.get("yaw")
 
-            if device_id=="G4_Endo": 
+            if device_id=="G1_Endo": 
                 message_counter += 1
                 if message_counter % 10 == 0:
                     roll1 = roll
