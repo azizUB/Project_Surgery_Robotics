@@ -22,7 +22,7 @@ You have seen the complexity to perform a simple surgery process in roboDK simul
 The main improvements are based on:
 - Servomotors module:
     - apply the RPY angles to the four servomotors to obtain the desired Gripper orientation.
-    read the torques on the four servomotors to detect the gripper contact with the tissue.
+    - read the torques on the four servomotors to detect the gripper contact with the tissue.
     - send these torques to the Gripper module and PC.
     ![ServomotorsModule](././Images/Session1/Servos1.png)
     ![ServomotorsModule](././Images/Session1/Servos2.png)
@@ -34,7 +34,22 @@ The main improvements are based on:
     - receives the RPY angles from Endowrist module and correct the gripper orientation
     - receives the torques from the Servomotors module.
     - Apply a vibration with actuator to feel the contact with the tissue.
-
+        - You have to add on void setup() the following code:
+        ```cpp
+        // Configure PWM for the vibration motor (channel 0)
+        ledcSetup(0, 5000, 8); // Channel 0, frequency 5kHz, resolution 8 bits
+        ledcAttachPin(vibrationPin, 0); // Attach the vibration motor to channel 0
+        ````
+        - You have to add on void receiveTorquesUDP() the following code:
+        ```cpp
+        // Vibration motor control based on torque values
+        float totalTorque = Torque_roll1 + Torque_pitch + Torque_yaw;
+        // Convert torque to PWM value (0-255)
+        int vibrationValue = constrain(totalTorque * 2.5, 0, 255); // Adjust the scaling factor as needed
+        ledcWrite(0, vibrationValue); // Set the PWM value for the vibration motor
+        Serial.print("Vibration motor value: ");
+        Serial.println(vibrationValue); 
+        ```
 - PC module:
     - receives the RPY corrected angles from the Gripper module and perform the simulated gripper orientation
     - receives the RPY angles from the Endowrist module and apply them to the UR5e robot arm with a proper python based sockets program
@@ -46,10 +61,10 @@ The main improvements are based on:
 
 The proposed tasks for this first session are:
 - Connect properly the Hardware setup
-- Save the ESP32 InitialPrograms for the 3 ESP32 modules using th VScode Arduino Community Edition. Take care about the proper IP address of each module and PC.
+- Save the ESP32 custom Programs for the 3 ESP32 modules using PlatformIO. Take care about the proper IP address of each module and PC.
 - Run the InitSurgeryRobotic_students.rdk file in the roboDK program to visualize the UR5e robot arm and the Endowrist tool.
 - Test the system performances described above 
-- Try to perform a suture process in simulation according to the following video:
+- Try to perform again the suture process in simulation according to the following video:
 [![suture process in simulation](Images/Session1/training.png)](https://youtu.be/1t3-Ggcp_Hg?feature=shared)
 
 Show and explain the system performances to your teacher.
