@@ -136,9 +136,9 @@ def move_robot(robot, gripper, needle, text_label):
                     status_message = "❌ No es pot moure més en Z (relatiu)"
                     
         if current_Gripper_rpy:
-            g_roll = Gripper_rpy.get("roll")
-            g_pitch = Gripper_rpy.get("pitch")
-            g_yaw = Gripper_rpy.get("yaw")
+            g_roll = Gripper_rpy.get("roll") # - roll end
+            g_pitch = Gripper_rpy.get("pitch") # - yaw end
+            g_yaw = Gripper_rpy.get("yaw") # + pitch end
             s1 = Gripper_rpy.get("s1")
             s2 = Gripper_rpy.get("s2")
             #print(f"Gripper: {g_roll}, {g_pitch}, {g_yaw}")
