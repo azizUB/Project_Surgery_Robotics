@@ -60,7 +60,7 @@ def update_text_label(label, tool_orientation, gripper_orientation, status_messa
 
 # Function to read UDP data and update the global variable
 def read_data_UDP():
-    global Endowrist_rpy, Gripper_rpy, data_lock
+    global Endowrist_rpy, Gripper_rpy, Servo_torques, data_lock
     while True:
         try:
             data, addr = sock.recvfrom(BUFFER_SIZE) 
@@ -73,6 +73,9 @@ def read_data_UDP():
                 elif device_id == "G5_Gri":
                     with data_lock:
                         Gripper_rpy = received_data
+                elif device_id == "G5_Servos":
+                    with data_lock:
+                        Servo_torques = received_data
             except json.JSONDecodeError:
                 print("Error decoding JSON data")
         except socket.error as e:
@@ -152,6 +155,15 @@ def move_robot(robot, gripper, needle, text_label):
                 needle.setParent(gripper)
                 needle.setPose(TxyzRxyz_2_Pose([0, 0, 0, 0, 0, 0]))
                 status_message = "🔵 S2 premut: agulla agafada"
+                    
+        with data_lock:
+            st = Servo_torques
+        if st:
+            t_r1 = st.get("t_roll1", 0)
+            t_r2 = st.get("t_roll2", 0)
+            t_p = st.get("t_pitch", 0)
+            t_y = st.get("t_yaw", 0)
+            servo_torques_msg = f"T(R1,R2,P,Y) = {t_r1:.1f}, {t_r2:.1f}, {t_p:.1f}, {t_y:.1f}"
             
         # Update the label with the latest values
         update_text_label(text_label, endowrist_orientation_msg, gripper_orientation_msg, status_message, servo_torques_msg)
