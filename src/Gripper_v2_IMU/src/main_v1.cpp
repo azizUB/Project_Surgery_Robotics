@@ -33,6 +33,9 @@ IMU imu;
 // Orientation data
 float Gri_roll = 0.0, Gri_pitch = 0.0, Gri_yaw = 0.0;
 
+// Recieved Torque data
+float Torque_roll1 = 0.0, Torque_roll2 = 0.0, Torque_pitch = 0.0, Torque_yaw = 0.0;
+
 void connectToWiFi() {
   Serial.print("Connecting to Wi-Fi");
   WiFi.begin(ssid, password);
@@ -81,6 +84,56 @@ void sendOrientationUDP() {
   udp.endPacket();
 }
 
+void recieveTorquesUDP() {
+  int packetSize = udp.parsePacket();
+  if (packetSize) {
+    byte packetBuffer[512];
+    int len = udp.read(packetBuffer, 512);
+    if (len > 0) {
+      packetBuffer[len] = '\0';
+      Serial.print("Received packet size: ");
+      Serial.println(packetSize);
+      Serial.print("Received: ");
+      Serial.println((char*)packetBuffer);
+
+      JsonDocument doc; 
+      DeserializationError error = deserializeJson(doc, packetBuffer);
+      if (error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.f_str());
+        return;
+      }
+
+      const char* device = doc["device"];
+      if (strcmp(device, "G1_Servos") == 0) {
+        Torque_roll1 = doc["t_roll1"];
+        Torque_roll2 = doc["t_roll2"];
+        Torque_pitch = doc["t_pitch"];
+        Torque_yaw = doc["t_yaw"];
+
+        Serial.print("Torques recieved");
+        Serial.print("Torque_roll1: "); Serial.print(Torque_roll1);
+        Serial.print("Torque_roll2: "); Serial.print(Torque_roll2);
+        Serial.print("Torque_pitch: "); Serial.print(Torque_pitch);
+        Serial.print("Torque_yaw: "); Serial.print(Torque_yaw);
+      } else {
+        Serial.println("Unkown device.");
+      }
+    }
+  }
+
+  // Vibration motor control based on torque values
+  float totalTorque = Torque_roll1 + Torque_pitch + Torque_yaw;
+
+  // Convert torque to PWM value (0-255)
+  int vibrationValue = constrain(totalTorque * 2.5, 0, 255); // Adjust the scaling factor as needed
+
+  ledcWrite(0, vibrationValue); // Set the PWM value for the vibration motor
+
+  Serial.print("Vibration motor value: ");
+  Serial.println(vibrationValue); 
+  }
+
 void setup() {
   Serial.begin(115200);
   Wire.begin();
@@ -95,10 +148,15 @@ void setup() {
 
   pinMode(PIN_S1, INPUT);
   pinMode(PIN_S2, INPUT);
+
+  // Configure PWM for the vibration motor (channel 0)
+  ledcSetup(0, 5000, 8); // Channel 0, frequency 5kHz, resolution 8 bits
+  ledcAttachPin(vibrationPin, 0); // Attach the vibration motor to channel 0
 }
 
 void loop() {
   updateOrientation();
   sendOrientationUDP();
+  recieveTorquesUDP();
   delay(10);
 }
