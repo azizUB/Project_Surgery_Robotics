@@ -12,7 +12,7 @@ const char *ssid = "Robotics_UB";
 const char *password = "rUBot_xx";
 
 // UDP settings
-IPAddress receiverESP32IP(192, 168, 1, 13);
+IPAddress receiverESP32IP(192, 168, 1, 11); // the gripper's ip
 IPAddress receiverComputerIP(192, 168, 1, 15);
 const int udpPort = 12345;
 WiFiUDP udp;
@@ -43,6 +43,11 @@ float sumRoll1 = 0, sumRoll2 = 0, sumPitch = 0, sumYaw = 0;
 float OldValueRoll = 0, OldValuePitch = 0, OldValueYaw = 0;
 float roll = 0, pitch = 0, yaw = 0;
 int s1 = 1, s2 = 1;
+
+// AÑADIDO
+bool firstPacket = true;   // para capturar la referencia la 1ª vez
+float yaw_ref = 0.0f;      // referencia de yaw (independiente del Norte)
+
 
 void connectToWiFi() {
   Serial.print("Connecting to Wi-Fi");
@@ -84,6 +89,11 @@ void receiveOrientationUDP() {
         Gri_yaw = round(doc["yaw"].as<float>());
         s1 = doc["s1"];
         s2 = doc["s2"];
+
+        if (firstPacket) {
+          yaw_ref = Gri_yaw; // Guarda como ref la posicion inicial del gripper
+          firstPacket = false; // No lo vuelve a ejecutar pq firstPacket se queda false
+        }
         Serial.print("Gri_Roll: "); Serial.print(Gri_roll);
         Serial.print(" Gri_Pitch: "); Serial.print(Gri_pitch);
         Serial.print(" Gri_Yaw: "); Serial.println(Gri_yaw);
@@ -114,6 +124,38 @@ float getTorque(float& sum, int analogPin, float& previous) {
   return diff;
 }
 
+// AÑADIDO
+void readTorques() {
+  Torque_yaw   = getTorque(sumYaw,   PIN_ANALOG_YAW,   prevYaw);
+  Torque_pitch = getTorque(sumPitch, PIN_ANALOG_PITCH, prevPitch);
+  Torque_roll1 = getTorque(sumRoll1, PIN_ANALOG_ROLL1, prevRoll1);
+  Torque_roll2 = getTorque(sumRoll2, PIN_ANALOG_ROLL2, prevRoll2);
+}
+
+// AÑADIDO
+void sendTorquesUDP() {
+  JsonDocument doc;
+  doc["device"]  = "G1_Servos";     // identifica el módulo que envía
+  doc["t_roll1"] = Torque_roll1;
+  doc["t_roll2"] = Torque_roll2;
+  doc["t_pitch"] = Torque_pitch;
+  doc["t_yaw"]   = Torque_yaw;
+  doc["ms"]      = (uint32_t)millis();  // opcional: sello de tiempo
+
+  char jsonBuffer[256];
+  size_t n = serializeJson(doc, jsonBuffer, sizeof(jsonBuffer));
+
+  // → al ESP32 del gripper (para háptica/feedback si lo usas)
+  udp.beginPacket(receiverESP32IP, udpPort);
+  udp.write((const uint8_t*)jsonBuffer, n);
+  udp.endPacket();
+
+  // → al PC (simulación/monitorización)
+  udp.beginPacket(receiverComputerIP, udpPort);
+  udp.write((const uint8_t*)jsonBuffer, n);
+  udp.endPacket();
+}
+
 void moveServos() {
   roll = Gri_roll;
   OldValueRoll = roll;
@@ -122,16 +164,26 @@ void moveServos() {
   yaw = Gri_yaw;
   OldValueYaw = yaw;
 
+  float yaw_rel = Gri_yaw - yaw_ref; // Cuanto he girado respecto a la orientacion inicial, no Norte
+
+  servo_pitch.write(90 + pitch);
+  servo_yaw.write(90 + yaw_rel);
+
   float delta = 0;
   if (s1 == 0) {
     delta = 40;
     Serial.println("S1 premut → Obrint");
   }
-
-  servo_roll1.write(Gri_roll + delta);
-  servo_roll2.write(180 - Gri_roll);
-  servo_pitch.write(pitch);
-  servo_yaw.write(yaw);
+  
+  if(roll >= 0 &&  roll <= 90){
+    servo_roll1.write(90 + roll + delta);
+    servo_roll2.write(90 - roll);
+  }
+  else if(roll >= 270 && roll <= 360){
+    int roll_cr = roll - 270;
+    servo_roll1.write(roll_cr + delta);
+    servo_roll2.write(180 - roll_cr);
+  }
 }
 
 void setup() {
@@ -172,5 +224,7 @@ void setup() {
 void loop() {
   receiveOrientationUDP();
   moveServos();
+  readTorques();           
+  sendTorquesUDP();
   delay(10);
 }

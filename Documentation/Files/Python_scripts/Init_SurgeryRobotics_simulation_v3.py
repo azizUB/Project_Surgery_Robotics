@@ -67,13 +67,13 @@ def read_data_UDP():
             try:
                 received_data = json.loads(data.decode())
                 device_id = received_data.get("device")
-                if device_id == "G5_Endo":
+                if device_id == "G1_Endo":
                     with data_lock:
                         Endowrist_rpy = received_data
-                elif device_id == "G5_Gri":
+                elif device_id == "G1_Gri":
                     with data_lock:
                         Gripper_rpy = received_data
-                elif device_id == "G5_Servos":
+                elif device_id == "G1_Servos":
                     with data_lock:
                         Servo_torques = received_data
             except json.JSONDecodeError:
@@ -134,8 +134,8 @@ def move_robot(robot, gripper, needle, text_label):
                     
         if current_Gripper_rpy:
             g_roll = Gripper_rpy.get("roll") - Endowrist_rpy.get("roll")
-            g_pitch = Gripper_rpy.get("pitch") - Endowrist_rpy.get("yaw")
-            g_yaw = Gripper_rpy.get("yaw") + Endowrist_rpy.get("pitch")
+            g_pitch = Gripper_rpy.get("pitch") - Endowrist_rpy.get("pitch")
+            g_yaw = Gripper_rpy.get("yaw") - Endowrist_rpy.get("yaw")
             s1 = Gripper_rpy.get("s1")
             s2 = Gripper_rpy.get("s2")
             #print(f"Gripper: {g_roll}, {g_pitch}, {g_yaw}")
