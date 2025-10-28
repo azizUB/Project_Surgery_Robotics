@@ -12,7 +12,7 @@ const char *ssid = "Robotics_UB";
 const char *password = "rUBot_xx";
 
 // UDP settings
-IPAddress receiverESP32IP(192, 168, 1, 13);
+IPAddress receiverESP32IP(192, 168, 1, 11); // the gripper's ip
 IPAddress receiverComputerIP(192, 168, 1, 15);
 const int udpPort = 12345;
 WiFiUDP udp;
@@ -175,7 +175,7 @@ void moveServos() {
   servo_roll1.write(90 + Gri_roll + delta);
   servo_roll2.write(90 - Gri_roll);
   servo_pitch.write(90 + pitch);
-  servo_yaw.write(90 + yaw);
+  servo_yaw.write(90 + yaw_rel);
 }
 
 void setup() {
