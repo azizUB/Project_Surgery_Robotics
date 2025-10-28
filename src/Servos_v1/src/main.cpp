@@ -164,11 +164,6 @@ void moveServos() {
   yaw = Gri_yaw;
   OldValueYaw = yaw;
 
-  float yaw_rel = Gri_yaw - yaw_ref; // Cuanto he girado respecto a la orientacion inicial, no Norte
-
-  servo_pitch.write(90 + pitch);
-  servo_yaw.write(90 + yaw_rel);
-
   float delta = 0;
   if (s1 == 0) {
     delta = 40;
@@ -184,6 +179,16 @@ void moveServos() {
     servo_roll1.write(roll_cr + delta);
     servo_roll2.write(180 - roll_cr);
   }
+
+  if(pitch >= 0 &&  pitch <= 90){
+    servo_pitch.write(90 + pitch);
+  }
+  else if(pitch >= 270 && pitch <= 360){
+    servo_pitch.write(pitch - 270);
+  }
+
+  float yaw_rel = Gri_yaw - yaw_ref; // Cuanto he girado respecto a la orientacion inicial, no Norte
+  servo_yaw.write(90 + yaw_rel);
 }
 
 void setup() {
