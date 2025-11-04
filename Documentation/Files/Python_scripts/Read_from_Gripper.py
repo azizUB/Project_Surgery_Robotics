@@ -11,6 +11,7 @@ sock.bind((UDP_IP, UDP_PORT))
 print(f"Listening for gripper data on {UDP_IP}:{UDP_PORT}")
 
 message_counter = 0
+yaw_ref = None
 
 try:
     while True:
@@ -26,10 +27,15 @@ try:
                 yaw = gripper_data.get("yaw")
                 s1 = gripper_data.get("s1")
                 s2 = gripper_data.get("s2")
-
+                
+                if yaw_ref is None:
+                    yaw_ref = yaw
+                
+                yaw_rel = yaw - yaw_ref
+                
                 message_counter += 1
                 if message_counter % 10 == 0:
-                    print(f"[{device_id}] Roll: {roll:.0f}, Pitch: {pitch:.0f}, Yaw: {yaw:.0f}, S1: {s1}, S2: {s2}")
+                    print(f"[{device_id}] Roll: {roll:.0f}, Pitch: {pitch:.0f}, Yaw: {yaw:.0f}, Yaw_rel : {yaw_rel:.0f}, S1: {s1}, S2: {s2}")
             # else:
             #     print("Message from another device or missing device ID.")
 
